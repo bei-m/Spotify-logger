@@ -323,31 +323,47 @@ def get_stats_by_duration():
         return jsonify({"message":"No data found for the selected parameters."}), 200
    
 @app.route('/statistics/total', methods=['GET'])
-def get_total_time_streamed():
+def get_streaming_time():
     start = request.args.get('startDate')
     end = request.args.get('endDate')
+    artists = request.args.getlist('artist')
+
+    if len(artists)>1:
+        return jsonify({"error":"Too many artists entered. Only one artist is allowed."}), 400
     
-    #TEMP: temporary fix; function rewrite planned in the next commit------------
+    if start and end:
+        start = format_date(start)
+        end = format_date(end)
+        if end<start:
+            return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
+        
+    params = []
+    where_temp = []
+    query_start = f"SELECT SUM(progress) as ms \nFROM history "
     if start:
         start = format_date(start)
+        where_temp.append(f"played_at>%s")
+        params.append(start)
     if end:
         end = format_date(end)
-    #----------------------------
+        end = check_end_date(end)
+        where_temp.append(f"played_at<%s")
+        params.append(end)
+    if artists:
+        artist = artists[0]
+        temp = []
+        for i in range (1,4):
+            temp.append(f"artist{i} like %s")
+        temp = " OR ".join(temp)
+        where_temp.append("("+temp+")")
+        params.extend([artist]*3)
     
-    params = []
-    query = f"SELECT SUM(progress) as ms \nFROM history "
-    if start and end:
-        end = check_end_date(end)
-        query += "\nWHERE played_at>%s AND played_at<%s"
-        params.append(start)
-        params.append(end)
-    elif start and not end:
-        query += "\nWHERE played_at>%s "
-        params.append(start)
-    elif end and not start:
-        end = check_end_date(end)
-        query += "\nWHERE played_at<%s "
-        params.append(end)
+    if len(where_temp)>0:
+        where_part = " WHERE " + " AND ".join(where_temp)
+    else:
+        where_part = ""
+           
+    query = query_start + where_part
     
     with pool.connection() as conn:
         with conn.cursor() as cursor:
@@ -356,7 +372,9 @@ def get_total_time_streamed():
             columns = [desc[0] for desc in cursor.description]
             result = [dict(zip(columns, row)) for row in rows]
     for row in result:
-        row['total duration'] = format_time(row['ms'])
+        if artists:
+            row['artist']=artists[0]
+        row['total streaming time'] = format_time(row['ms'])
         row.pop('ms')
     if result:
         return jsonify(result), 200

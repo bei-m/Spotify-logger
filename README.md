@@ -40,7 +40,7 @@ _Description_: Returns statistics based on actual playback time. All tracks play
 _URL_: `/statistics/duration` <br>
 _Method_: `GET` <br>
 3. **Get total streaming time**<br>
-_Description_: Returns the total amount of time spent streaming. <br>
+_Description_: Returns the total time spent streaming. <br>
 _URL_: `/statistics/total` <br>
 _Method_: `GET` <br>
 
@@ -75,7 +75,8 @@ _Method_: `GET` <br>
 * **Get total streaming time**
   | Statistics                                   | Required parameters | Additional customization                                                                         |
   |----------------------------------------------|---------------------|--------------------------------------------------------------------------------------------------|
-  | Total amount of time spent streaming         | -                   | `startDate` and/or `endDate` - defines the date range.                                                   |
+  | Total time spent streaming                   | -                   | `startDate` and/or `endDate` - defines the date range.                                           |
+  | Total time spent streaming a specific artist | `artist`            |`startDate` and/or `endDate` - defines the date range.  |
 
 ## Database schema
 This project uses a single shared PostgreSQL database that consists of two tables - `history` and `error_log`. 

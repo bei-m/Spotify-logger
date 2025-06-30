@@ -47,7 +47,6 @@ def format_time(ms):
     
     return result
 
-
 def format_result(results):
     for record in results: #if records contain artists, rewrite them as a list
         if record.get('artist1'): 
@@ -62,6 +61,11 @@ def format_result(results):
         else:
             break
     return results
+
+#convert date to ISO format
+def format_date(date):
+    date = date.replace(" ", "-").replace("/", "-")
+    return date
 
 @app.route('/statistics/streams', methods=['GET'])
 def get_stats_by_streams():
@@ -97,9 +101,9 @@ def get_stats_by_streams():
         return jsonify({"error":"Select additional parameters."}), 400
     
     if start and end:
-        startDate = datetime.fromisoformat(start)
-        endDate = datetime.fromisoformat(end)
-        if endDate<startDate:
+        start = format_date(start)
+        end = format_date(end)
+        if end<start:
             return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
     
     #---------------------------------------------QUERY FORMATION
@@ -158,9 +162,11 @@ def get_stats_by_streams():
         params.append(start)
         params.append(end)
     elif start and not end:
+        start = format_date(start)
         where_part.append(f" played_at >= %s")
         params.append(start)
     elif end and not start:
+        end = format_date(end)
         end = check_end_date(end)
         where_part.append(f"played_at <= %s ")
         params.append(end)
@@ -217,9 +223,9 @@ def get_stats_by_duration():
         return jsonify({"error":"Select additional parameters."}), 400
     
     if start and end:
-        startDate = datetime.fromisoformat(start)
-        endDate = datetime.fromisoformat(end)
-        if endDate<startDate:
+        start = format_date(start)
+        end = format_date(end)
+        if end<start:
             return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
     
     #---------------------------------------------QUERY FORMATION
@@ -279,9 +285,11 @@ def get_stats_by_duration():
         params.append(start)
         params.append(end)
     elif start and not end:
+        start = format_date(start)
         where_temp.append(f"played_at >= %s ")
         params.append(start)
     elif end and not start:
+        end = format_date(end)
         end = check_end_date(end)
         where_temp.append(f" played_at <= %s ")
         params.append(end)
@@ -318,6 +326,13 @@ def get_stats_by_duration():
 def get_total_time_streamed():
     start = request.args.get('startDate')
     end = request.args.get('endDate')
+    
+    #TEMP: temporary fix; function rewrite planned in the next commit------------
+    if start:
+        start = format_date(start)
+    if end:
+        end = format_date(end)
+    #----------------------------
     
     params = []
     query = f"SELECT SUM(progress) as ms \nFROM history "

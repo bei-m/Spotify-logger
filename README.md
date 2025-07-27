@@ -15,6 +15,7 @@ Required environmental variables: <br>
 | DB_USER          | Database username           |
 | DB_PASSWORD      | Database password           |
 | DB_PORT          | Database port               |
+| IANA_TIMEZONE    | User's local timezone (e.g. 'Europe/Vilnius')|
 
 ## WORKER.py
 The script runs as a background worker that collects streaming activity using Spotify Web API. Activity is retrieved by calling Spotify's endpoint for the current playback state.<br>

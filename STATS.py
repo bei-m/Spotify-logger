@@ -3,6 +3,8 @@ import datetime as d
 from datetime import datetime
 from psycopg_pool import ConnectionPool
 import os
+import tzlocal
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -19,13 +21,11 @@ port = os.environ['DB_PORT']
 conninfo = f"host={host} port={port} dbname={db_name} user={user} password={password} sslmode='require'" 
 pool = ConnectionPool(conninfo=conninfo, min_size=1, max_size=5, timeout=30)
 
-#data formating to make date interval inclusive
-def check_end_date(date): 
-    date = date.replace(" ", "-").replace("/", "-")
-    end_date = datetime.fromisoformat(date)
-    if len(date.strip())==10:
-            end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
-    return end_date
+#use time zone from the environment if set; otherwise default to system time zone
+if 'IANA_TIMEZONE' in os.environ:
+    current_timezone = os.environ['IANA_TIMEZONE']
+else:
+    current_timezone = tzlocal.get_localzone_name()
 
 #format ms to largest possible time unit
 def format_time(ms):
@@ -62,10 +62,16 @@ def format_result(results):
             break
     return results
 
-#convert date to ISO format
-def format_date(date):
+def format_date(date, type='start'):
+    #convert date to ISO format
     date = date.replace(" ", "-").replace("/", "-")
-    return date
+    new_date = datetime.fromisoformat(date)
+    #format end date to make date interval inclusive
+    if type=='end' and len(date.strip())==10:
+        new_date = new_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+    #add timezone
+    datetz = new_date.replace(tzinfo=ZoneInfo(current_timezone))
+    return datetz
 
 @app.route('/statistics/streams', methods=['GET'])
 def get_stats_by_streams():
@@ -102,7 +108,7 @@ def get_stats_by_streams():
     
     if start and end:
         start = format_date(start)
-        end = format_date(end)
+        end = format_date(end, 'end')
         if end<start:
             return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
     
@@ -157,7 +163,6 @@ def get_stats_by_streams():
     
     #start and end parameters handling   
     if start and end:
-        end = check_end_date(end)
         where_part.append(f"played_at BETWEEN %s and %s")
         params.append(start)
         params.append(end)
@@ -166,8 +171,7 @@ def get_stats_by_streams():
         where_part.append(f" played_at >= %s")
         params.append(start)
     elif end and not start:
-        end = format_date(end)
-        end = check_end_date(end)
+        end = format_date(end, 'end')
         where_part.append(f"played_at <= %s ")
         params.append(end)
     
@@ -224,7 +228,7 @@ def get_stats_by_duration():
     
     if start and end:
         start = format_date(start)
-        end = format_date(end)
+        end = format_date(end, 'end')
         if end<start:
             return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
     
@@ -280,7 +284,6 @@ def get_stats_by_duration():
     
     #start and end parameter handling   
     if start and end:
-        end = check_end_date(end)
         where_temp.append(" played_at BETWEEN %s and %s ")
         params.append(start)
         params.append(end)
@@ -289,8 +292,7 @@ def get_stats_by_duration():
         where_temp.append(f"played_at >= %s ")
         params.append(start)
     elif end and not start:
-        end = format_date(end)
-        end = check_end_date(end)
+        end = format_date(end, 'end')
         where_temp.append(f" played_at <= %s ")
         params.append(end)
     
@@ -333,7 +335,7 @@ def get_streaming_time():
     
     if start and end:
         start = format_date(start)
-        end = format_date(end)
+        end = format_date(end, 'end')
         if end<start:
             return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
         
@@ -345,8 +347,7 @@ def get_streaming_time():
         where_temp.append(f"played_at>%s")
         params.append(start)
     if end:
-        end = format_date(end)
-        end = check_end_date(end)
+        end = format_date(end, 'end')
         where_temp.append(f"played_at<%s")
         params.append(end)
     if artists:

@@ -7,6 +7,8 @@ from datetime import datetime
 from psycopg_pool import ConnectionPool
 import json
 import os
+import tzlocal
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -41,9 +43,15 @@ last_song = ""
 added = False
 queue_config = bool(len(queue_combos)>0)
 
+#use time zone from the environment if set; otherwise default to system time zone
+if 'IANA_TIMEZONE' in os.environ:
+    current_timezone = os.environ['IANA_TIMEZONE']
+else:
+    current_timezone = tzlocal.get_localzone_name()
+
 #log errors to database table "error_log"
 def log_error(error, code):
-    time = datetime.now()
+    time = datetime.now(ZoneInfo(current_timezone))
     query = f"INSERT INTO error_log (date, type, description) VALUES (%s, %s, %s) RETURNING id;"
     with pool.connection() as conn:
         with conn.cursor() as cursor:
@@ -57,7 +65,7 @@ def log_error(error, code):
                 print(f"{time} Exception couldn't be written to database: {exep}\n")
     
 def compare_dates (old_date, duration):
-    difference = datetime.now() - old_date
+    difference = datetime.now(ZoneInfo(current_timezone)) - old_date
     difference = difference.total_seconds() * 1000
     
     return difference<duration
@@ -100,7 +108,7 @@ def insert_record(data):
                         query = f"UPDATE history SET progress = %s WHERE id = %s"
                         cursor.execute(query, (progress, id))
                     else: #song was replayed
-                        played_at = datetime.now() 
+                        played_at = datetime.now(ZoneInfo(current_timezone)) 
                         if old_duration-old_progress<6000 and compare_dates(old_date, old_duration): #song was replayed with less than 6s remaining (may happen due to 5s logging interval)
                             query = f"UPDATE history SET progress = %s WHERE id = %s;"
                             cursor.execute(query, (old_duration, id))
@@ -112,7 +120,7 @@ def insert_record(data):
                         query = f"UPDATE history SET progress = %s WHERE id = %s;"
                         cursor.execute(query, (old_duration, id))
                     #new song playing, inserting new record
-                    played_at = datetime.now()
+                    played_at = datetime.now(ZoneInfo(current_timezone))
                     query = f"INSERT INTO history (artist1, artist2, artist3, played_at, track_name, progress, duration)\nVALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id;"
                     cursor.execute(query, (artist1, artist2, artist3, played_at, name, progress, duration))
                     id = cursor.fetchone()[0]

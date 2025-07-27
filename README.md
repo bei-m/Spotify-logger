@@ -2,14 +2,14 @@
 This project consists of two independent Python scripts that share a common database. The first script runs as a background worker, monitoring streaming activity and logging it to the database. The second script provides a set of RESTful APIs for exploring streaming statistics. <br>
 
 ## Configuration
-This project requires environmental variables for Spotify credentials and database connection, which are set in `.env` file. <br>
-Required environmental variables: <br>
+This project requires environment variables for Spotify credentials, database connection, and timezone, which are set in the `.env` file. <br>
+Required environment variables: <br>
 
 | Variable         | Description                 |
 |------------------|-----------------------------|
 | SP_CLIENT_ID     | Spotify API client ID       |
 | SP_CLIENT_SECRET | Spotify API client secret   |
-| SP_REDIRECT_URI  | Spotify API redirect uri    |
+| SP_REDIRECT_URI  | Spotify API redirect URI    |
 | DB_HOST          | Database host               |
 | DB_NAME          | Database name               |
 | DB_USER          | Database username           |

@@ -132,7 +132,7 @@ def get_stats_by_streams():
             field = f"artist{i}"
             select_part.append(field)
             group_part.append(field)
-            variables = ",".join([f"%s"]*num)
+            variables = ",".join(["%s"]*num)
             temp.append(f"{field} IN ({variables})")
             params.extend(artists)
         temp = " OR ".join(temp)
@@ -183,6 +183,7 @@ def get_stats_by_streams():
         params.append(limit)
         
     query = ", ".join(select_part) + from_part + " AND ".join(where_part) + " GROUP BY " + ", ".join(group_part) + ending
+    print(query)
     with pool.connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query, params)
@@ -253,8 +254,8 @@ def get_stats_by_duration():
             field = f"artist{i}"
             select_part.append(field)
             group_part.append(field)
-            variables = ",".join([f"%s"]*num)
-            temp.append("{field} IN ({variables})")
+            variables = ",".join(["%s"]*num)
+            temp.append(f"{field} IN ({variables})")
             params.extend(artists)
         temp = " OR ".join(temp)
         where_temp.append("("+temp+")")

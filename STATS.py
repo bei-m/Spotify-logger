@@ -116,11 +116,11 @@ def get_stats_by_streams():
     
     #---------------------------------------------QUERY FORMATION
     #query parts included in every query
-    from_part = f" FROM history "
-    ending = f" ORDER BY streams DESC "
+    from_part = " FROM history "
+    ending = " ORDER BY streams DESC "
     #query parts that will be formed dynamically based on parameters 
-    select_part = [f"SELECT COUNT(*) as streams"]
-    where_part = [f"WHERE progress>=45000 "]
+    select_part = ["SELECT COUNT(*) as streams"]
+    where_part = ["WHERE progress>=45000 "]
     group_part = []
     params = []
     
@@ -137,20 +137,20 @@ def get_stats_by_streams():
             params.extend(artists)
         temp = " OR ".join(temp)
         where_part.append("("+temp+")")
-        select_part.append(f"track_name")
-        where_part.append(f"track_name LIKE %s")
-        group_part.append(f"track_name")  
+        select_part.append("track_name")
+        where_part.append("track_name LIKE %s")
+        group_part.append("track_name")  
         params.append(name + '%')
     elif artists and not name:
-        select_part.append(f"track_name ")
-        where_part.append(f"(artist1 = %s OR artist2 = %s OR artist3 = %s)")
-        group_part.append(f"track_name ")
+        select_part.append("track_name ")
+        where_part.append("(artist1 = %s OR artist2 = %s OR artist3 = %s)")
+        group_part.append("track_name ")
         params.extend([artists[0]]*3)
     elif not artists and not name and type:
         if type=="artists": #general statistics - top artists
-            select_part.append(f"artist")
-            group_part.append(f"artist")
-            from_part = f"""
+            select_part.append("artist")
+            group_part.append("artist")
+            from_part = """
             FROM (
                 SELECT played_at, artist1 as artist, track_name, progress FROM history
                 UNION ALL
@@ -160,26 +160,26 @@ def get_stats_by_streams():
             ) as temp
             """
         elif type=="tracks": #general statistics - top tracks
-            select_part.append(f"CONCAT_WS(', ', artist1, artist2, artist3) as artists, track_name ")
-            group_part.append(f"artist1, artist2, artist3, track_name ")
+            select_part.append("CONCAT_WS(', ', artist1, artist2, artist3) as artists, track_name ")
+            group_part.append("artist1, artist2, artist3, track_name ")
     
     #start and end parameters handling   
     if start and end:
-        where_part.append(f"played_at BETWEEN %s and %s")
+        where_part.append("played_at BETWEEN %s and %s")
         params.append(start)
         params.append(end)
     elif start and not end:
         start = format_date(start)
-        where_part.append(f" played_at >= %s")
+        where_part.append(" played_at >= %s")
         params.append(start)
     elif end and not start:
         end = format_date(end, 'end')
-        where_part.append(f"played_at <= %s ")
+        where_part.append("played_at <= %s ")
         params.append(end)
     
     #limit parameter handling
     if int(limit)>0:
-        ending += f"\nLIMIT %s"
+        ending += "\nLIMIT %s"
         params.append(limit)
         
     query = ", ".join(select_part) + from_part + " AND ".join(where_part) + " GROUP BY " + ", ".join(group_part) + ending
@@ -236,8 +236,8 @@ def get_stats_by_duration():
     
     #---------------------------------------------QUERY FORMATION
     #query parts included in every query
-    from_part = f"FROM history "
-    ending = f"\nORDER BY ms DESC "
+    from_part = "FROM history "
+    ending = "\nORDER BY ms DESC "
     #query parts that will be formed dynamically based on parameters
     select_part = []
     where_part = []
@@ -254,24 +254,24 @@ def get_stats_by_duration():
             select_part.append(field)
             group_part.append(field)
             variables = ",".join([f"%s"]*num)
-            temp.append(f"{field} IN ({variables})")
+            temp.append("{field} IN ({variables})")
             params.extend(artists)
         temp = " OR ".join(temp)
         where_temp.append("("+temp+")")
-        select_part.append(f"track_name")
-        where_temp.append(f"track_name LIKE %s")
-        group_part.append(f"track_name")  
+        select_part.append("track_name")
+        where_temp.append("track_name LIKE %s")
+        group_part.append("track_name")  
         params.append(name + '%')
     elif artists and not name:
-        select_part.append(f"track_name ")
-        where_temp.append(f"(artist1 = %s OR artist2 = %s OR artist3 = %s)")
-        group_part.append(f"track_name ")
+        select_part.append("track_name ")
+        where_temp.append("(artist1 = %s OR artist2 = %s OR artist3 = %s)")
+        group_part.append("track_name ")
         params.extend([artists[0]]*3)
     elif not artists and not name and type:
         if type=="artists": #general statistics - top artists
-            select_part.append(f"artist")
-            group_part.append(f"artist")
-            from_part = f"""
+            select_part.append("artist")
+            group_part.append("artist")
+            from_part = """
             FROM (
                 SELECT played_at, artist1 as artist, track_name, progress FROM history
                 UNION ALL
@@ -281,8 +281,8 @@ def get_stats_by_duration():
             ) as temp
             """
         elif type=="tracks": #general statistics - top tracks
-            select_part.append(f"CONCAT_WS(', ', artist1, artist2, artist3) as artists, track_name ")
-            group_part.append(f"artist1, artist2, artist3, track_name ")
+            select_part.append("CONCAT_WS(', ', artist1, artist2, artist3) as artists, track_name ")
+            group_part.append("artist1, artist2, artist3, track_name ")
     
     #start and end parameter handling   
     if start and end:
@@ -291,23 +291,23 @@ def get_stats_by_duration():
         params.append(end)
     elif start and not end:
         start = format_date(start)
-        where_temp.append(f"played_at >= %s ")
+        where_temp.append("played_at >= %s ")
         params.append(start)
     elif end and not start:
         end = format_date(end, 'end')
-        where_temp.append(f" played_at <= %s ")
+        where_temp.append(" played_at <= %s ")
         params.append(end)
     
     #limit parameter handling
     if int(limit)>0:
-        ending += f"\nLIMIT %s"
+        ending += "\nLIMIT %s"
         params.append(limit)
     
     if len(where_temp)>0:
         where_part = "WHERE " + " AND ".join(where_temp)
     else:
         where_part = ""
-    select_part.append(f"sum(progress) as ms ")
+    select_part.append("sum(progress) as ms ")
     
     query = "SELECT " + ", ".join(select_part) + from_part + where_part + " GROUP BY " + ", ".join(group_part) + ending
     with pool.connection() as conn:
@@ -343,14 +343,14 @@ def get_streaming_time():
         
     params = []
     where_temp = []
-    query_start = f"SELECT SUM(progress) as ms \nFROM history "
+    query_start = "SELECT SUM(progress) as ms \nFROM history "
     if start:
         start = format_date(start)
-        where_temp.append(f"played_at>%s")
+        where_temp.append("played_at>%s")
         params.append(start)
     if end:
         end = format_date(end, 'end')
-        where_temp.append(f"played_at<%s")
+        where_temp.append("played_at<%s")
         params.append(end)
     if artists:
         artist = artists[0]

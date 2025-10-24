@@ -65,6 +65,8 @@ def format_result(results):
     return results
 
 def format_date(date, date_type='start'):
+    if date is None:
+        return None
     if isinstance(date, str):
         #convert date to ISO format
         date = date.replace(" ", "-").replace("/", "-")
@@ -117,11 +119,11 @@ def get_stats_by_streams():
     if (start or end) and (not analysis_type and not artists): #interval cannot be the only parameter
         return jsonify({"error":"Select additional parameters."}), 400
     
-    if start and end:
-        start = format_date(start)
-        end = format_date(end, 'end')
-        if not compare_dates(start, end):
-            return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
+    
+    start = format_date(start)
+    end = format_date(end, 'end')
+    if not compare_dates(start, end):
+        return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
     
     #---------------------------------------------QUERY FORMATION
     #query parts included in every query
@@ -172,18 +174,12 @@ def get_stats_by_streams():
             select_part.append("CONCAT_WS(', ', artist1, artist2, artist3) as artists, track_name ")
             group_part.append("artist1, artist2, artist3, track_name ")
     
-    #start and end parameters handling   
-    if start and end:
-        where_part.append("played_at BETWEEN %s and %s")
+    #start and end parameter handling   
+    if start:
+        where_part.append("played_at >= %s")
         params.append(start)
-        params.append(end)
-    elif start and not end:
-        start = format_date(start)
-        where_part.append(" played_at >= %s")
-        params.append(start)
-    elif end and not start:
-        end = format_date(end, 'end')
-        where_part.append("played_at <= %s ")
+    if end:
+        where_part.append("played_at <= %s")
         params.append(end)
     
     #limit parameter handling
@@ -192,7 +188,7 @@ def get_stats_by_streams():
         params.append(limit)
         
     query = ", ".join(select_part) + from_part + " AND ".join(where_part) + " GROUP BY " + ", ".join(group_part) + ending
-    
+   
     with pool.connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query, params)
@@ -238,11 +234,11 @@ def get_stats_by_duration():
     if (start or end) and (not analysis_type and not artists): #interval cannot be the only parameter
         return jsonify({"error":"Select additional parameters."}), 400
     
-    if start and end:
-        start = format_date(start)
-        end = format_date(end, 'end')
-        if not compare_dates(start, end):
-            return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
+    
+    start = format_date(start)
+    end = format_date(end, 'end')
+    if not compare_dates(start, end):
+        return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
     
     #---------------------------------------------QUERY FORMATION
     #query parts included in every query
@@ -295,17 +291,11 @@ def get_stats_by_duration():
             group_part.append("artist1, artist2, artist3, track_name ")
     
     #start and end parameter handling   
-    if start and end:
-        where_temp.append(" played_at BETWEEN %s and %s ")
+    if start:
+        where_temp.append("played_at >= %s")
         params.append(start)
-        params.append(end)
-    elif start and not end:
-        start = format_date(start)
-        where_temp.append("played_at >= %s ")
-        params.append(start)
-    elif end and not start:
-        end = format_date(end, 'end')
-        where_temp.append(" played_at <= %s ")
+    if end:
+        where_temp.append("played_at <= %s")
         params.append(end)
     
     #limit parameter handling
@@ -346,23 +336,23 @@ def get_streaming_time():
     if len(artists)>1:
         return jsonify({"error":"Too many artists entered. Only one artist is allowed."}), 400
     
-    if start and end:
-        start = format_date(start)
-        end = format_date(end, 'end')
-        if not compare_dates(start, end):
-            return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
+    
+    start = format_date(start)
+    end = format_date(end, 'end')
+    if not compare_dates(start, end):
+        return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
         
     params = []
     where_temp = []
     query_start = "SELECT SUM(progress) as ms \nFROM history "
+     
     if start:
-        start = format_date(start)
-        where_temp.append("played_at>%s")
+        where_temp.append("played_at >= %s")
         params.append(start)
     if end:
-        end = format_date(end, 'end')
-        where_temp.append("played_at<%s")
+        where_temp.append("played_at <= %s")
         params.append(end)
+        
     if artists:
         artist = artists[0]
         temp = []

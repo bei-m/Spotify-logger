@@ -92,7 +92,7 @@ def get_stats_by_streams():
     name = request.args.get('track') 
     start = request.args.get('startDate') 
     end = request.args.get('endDate') 
-    limit = request.args.get('limit', 0)
+    limit = request.args.get('limit', 20)
     analysis_type = request.args.get('type')
     
     if len(request.args)<1: #a minimum of one parameter is required
@@ -128,7 +128,7 @@ def get_stats_by_streams():
     #---------------------------------------------QUERY FORMATION
     #query parts included in every query
     from_part = " FROM history "
-    ending = " ORDER BY streams DESC "
+    ending = " ORDER BY streams DESC\nLIMIT %s"
     #query parts that will be formed dynamically based on parameters 
     select_part = ["SELECT COUNT(*) as streams"]
     where_part = ["WHERE progress>=45000 "]
@@ -183,9 +183,7 @@ def get_stats_by_streams():
         params.append(end)
     
     #limit parameter handling
-    if int(limit)>0:
-        ending += "\nLIMIT %s"
-        params.append(limit)
+    params.append(limit)
         
     query = ", ".join(select_part) + from_part + " AND ".join(where_part) + " GROUP BY " + ", ".join(group_part) + ending
    
@@ -207,7 +205,7 @@ def get_stats_by_duration():
     name = request.args.get('track') 
     start = request.args.get('startDate') 
     end = request.args.get('endDate') 
-    limit = request.args.get('limit', 0)
+    limit = request.args.get('limit', 20)
     analysis_type = request.args.get('type')
     
     if len(request.args)<1:  #a minimum of one parameter is required
@@ -243,7 +241,7 @@ def get_stats_by_duration():
     #---------------------------------------------QUERY FORMATION
     #query parts included in every query
     from_part = "FROM history "
-    ending = "\nORDER BY ms DESC "
+    ending = "\nORDER BY ms DESC\nLIMIT %s"
     #query parts that will be formed dynamically based on parameters
     select_part = []
     where_part = []
@@ -299,9 +297,7 @@ def get_stats_by_duration():
         params.append(end)
     
     #limit parameter handling
-    if int(limit)>0:
-        ending += "\nLIMIT %s"
-        params.append(limit)
+    params.append(limit)
     
     if len(where_temp)>0:
         where_part = "WHERE " + " AND ".join(where_temp)

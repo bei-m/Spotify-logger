@@ -64,12 +64,12 @@ def format_result(results):
             break
     return results
 
-def format_date(date, type='start'):
+def format_date(date, date_type='start'):
     #convert date to ISO format
     date = date.replace(" ", "-").replace("/", "-")
     new_date = datetime.fromisoformat(date)
     #format end date to make date interval inclusive
-    if type=='end' and len(date.strip())==10:
+    if date_type=='end' and len(date.strip())==10:
         new_date = new_date.replace(hour=23, minute=59, second=59, microsecond=999999)
     #add timezone
     datetz = new_date.replace(tzinfo=ZoneInfo(current_timezone))
@@ -82,7 +82,7 @@ def get_stats_by_streams():
     start = request.args.get('startDate') 
     end = request.args.get('endDate') 
     limit = request.args.get('limit', 0)
-    type = request.args.get('type')
+    analysis_type = request.args.get('type')
     
     if len(request.args)<1: #a minimum of one parameter is required
         return jsonify({"error":"No parameters were selected."}), 400
@@ -99,13 +99,13 @@ def get_stats_by_streams():
     if len(artists)>1 and not name: #when more than 1 artist is provided, statistics are for a specific track
         return jsonify({"error":"Missing data: enter a track name."}), 400
     
-    if artists and type: #type ignored when artists are provided
-        type = None
+    if artists and analysis_type: #type ignored when artists are provided
+        analysis_type = None
     
-    if type and type not in ['tracks', 'artists']: #general statistics can be either by tracks or artists 
+    if analysis_type and analysis_type not in ['tracks', 'artists']: #general statistics can be either by tracks or artists 
         return jsonify({"error":"Invalid type selected. Allowed types: 'artists', 'tracks'."}), 400
     
-    if (start or end) and (not type and not artists): #interval cannot be the only parameter
+    if (start or end) and (not analysis_type and not artists): #interval cannot be the only parameter
         return jsonify({"error":"Select additional parameters."}), 400
     
     if start and end:
@@ -146,8 +146,8 @@ def get_stats_by_streams():
         where_part.append("(artist1 = %s OR artist2 = %s OR artist3 = %s)")
         group_part.append("track_name ")
         params.extend([artists[0]]*3)
-    elif not artists and not name and type:
-        if type=="artists": #general statistics - top artists
+    elif not artists and not name and analysis_type:
+        if analysis_type=="artists": #general statistics - top artists
             select_part.append("artist")
             group_part.append("artist")
             from_part = """
@@ -159,7 +159,7 @@ def get_stats_by_streams():
                 SELECT played_at, artist3 as artist, track_name, progress FROM history WHERE artist3 IS NOT NULL
             ) as temp
             """
-        elif type=="tracks": #general statistics - top tracks
+        elif analysis_type=="tracks": #general statistics - top tracks
             select_part.append("CONCAT_WS(', ', artist1, artist2, artist3) as artists, track_name ")
             group_part.append("artist1, artist2, artist3, track_name ")
     
@@ -183,7 +183,6 @@ def get_stats_by_streams():
         params.append(limit)
         
     query = ", ".join(select_part) + from_part + " AND ".join(where_part) + " GROUP BY " + ", ".join(group_part) + ending
-    print(query)
     with pool.connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query, params)
@@ -203,7 +202,7 @@ def get_stats_by_duration():
     start = request.args.get('startDate') 
     end = request.args.get('endDate') 
     limit = request.args.get('limit', 0)
-    type = request.args.get('type')
+    analysis_type = request.args.get('type')
     
     if len(request.args)<1:  #a minimum of one parameter is required
         return jsonify({"error":"No parameters were selected."}), 400
@@ -220,13 +219,13 @@ def get_stats_by_duration():
     if len(artists)>1 and not name: #when more than 1 artist is provided, statistics are for a specific track
         return jsonify({"error":"Missing data: enter a track name."}), 400
     
-    if artists and type: #type ignored when artists are provided
-        type = None
+    if artists and analysis_type: #type ignored when artists are provided
+        analysis_type = None
         
-    if type and type not in ['tracks', 'artists']: #general statistics can be either by tracks or artists 
+    if analysis_type and analysis_type not in ['tracks', 'artists']: #general statistics can be either by tracks or artists 
         return jsonify({"error":"Invalid type selected. Allowed types: 'artists', 'tracks'."}), 400
     
-    if (start or end) and (not type and not artists): #interval cannot be the only parameter
+    if (start or end) and (not analysis_type and not artists): #interval cannot be the only parameter
         return jsonify({"error":"Select additional parameters."}), 400
     
     if start and end:
@@ -268,8 +267,8 @@ def get_stats_by_duration():
         where_temp.append("(artist1 = %s OR artist2 = %s OR artist3 = %s)")
         group_part.append("track_name ")
         params.extend([artists[0]]*3)
-    elif not artists and not name and type:
-        if type=="artists": #general statistics - top artists
+    elif not artists and not name and analysis_type:
+        if analysis_type=="artists": #general statistics - top artists
             select_part.append("artist")
             group_part.append("artist")
             from_part = """
@@ -281,7 +280,7 @@ def get_stats_by_duration():
                 SELECT played_at, artist3 as artist, track_name, progress FROM history WHERE artist3 IS NOT NULL
             ) as temp
             """
-        elif type=="tracks": #general statistics - top tracks
+        elif analysis_type=="tracks": #general statistics - top tracks
             select_part.append("CONCAT_WS(', ', artist1, artist2, artist3) as artists, track_name ")
             group_part.append("artist1, artist2, artist3, track_name ")
     

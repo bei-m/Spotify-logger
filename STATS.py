@@ -65,15 +65,24 @@ def format_result(results):
     return results
 
 def format_date(date, date_type='start'):
-    #convert date to ISO format
-    date = date.replace(" ", "-").replace("/", "-")
-    new_date = datetime.fromisoformat(date)
+    if isinstance(date, str):
+        #convert date to ISO format
+        date = date.replace(" ", "-").replace("/", "-")
+        date = datetime.fromisoformat(date)
+    
     #format end date to make date interval inclusive
-    if date_type=='end' and len(date.strip())==10:
-        new_date = new_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+    if date_type=='end' and date.hour==0 and date.minute==0:
+        date = date.replace(hour=23, minute=59, second=59, microsecond=999999)
     #add timezone
-    datetz = new_date.replace(tzinfo=ZoneInfo(current_timezone))
+    datetz = date.replace(tzinfo=ZoneInfo(current_timezone))
     return datetz
+
+def compare_dates(start, end):
+    if start is None or end is None:
+        return True
+    if end>start:
+        return True
+    return False
 
 @app.route('/statistics/streams', methods=['GET'])
 def get_stats_by_streams():
@@ -111,7 +120,7 @@ def get_stats_by_streams():
     if start and end:
         start = format_date(start)
         end = format_date(end, 'end')
-        if end<start:
+        if not compare_dates(start, end):
             return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
     
     #---------------------------------------------QUERY FORMATION
@@ -183,6 +192,7 @@ def get_stats_by_streams():
         params.append(limit)
         
     query = ", ".join(select_part) + from_part + " AND ".join(where_part) + " GROUP BY " + ", ".join(group_part) + ending
+    
     with pool.connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query, params)
@@ -231,7 +241,7 @@ def get_stats_by_duration():
     if start and end:
         start = format_date(start)
         end = format_date(end, 'end')
-        if end<start:
+        if not compare_dates(start, end):
             return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
     
     #---------------------------------------------QUERY FORMATION
@@ -310,6 +320,7 @@ def get_stats_by_duration():
     select_part.append("sum(progress) as ms ")
     
     query = "SELECT " + ", ".join(select_part) + from_part + where_part + " GROUP BY " + ", ".join(group_part) + ending
+
     with pool.connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query, params)
@@ -338,7 +349,7 @@ def get_streaming_time():
     if start and end:
         start = format_date(start)
         end = format_date(end, 'end')
-        if end<start:
+        if not compare_dates(start, end):
             return jsonify({"error":"The end date cannot be earlier than the start date."}), 400
         
     params = []

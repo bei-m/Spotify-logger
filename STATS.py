@@ -43,7 +43,9 @@ def format_time(ms):
     elif minutes:
         result = str(minutes)+ "m " + str(seconds) + "s"
     elif seconds:
-        result = str(seconds) + "s" 
+        result = str(seconds) + "s"
+    else:
+        result = "0 s"
     
     return result
 
